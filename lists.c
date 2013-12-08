@@ -298,7 +298,7 @@ Element *pop(Stack *s)
 }
 
 /* check if a list (or queue or stack) is empty */
-int empty(List *l)
+int isEmpty(List *l)
 {
 	if(l->sz == 0)
 		return 1;
