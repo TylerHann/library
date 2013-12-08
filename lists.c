@@ -9,8 +9,11 @@ THIS IS TO LET THE USER HAVE CONTROL OVER HOW HE USES THE FUNCTIONS
 AND HE CAN INTERPRET THE RESULTS HIMSELF
 --------------------------------------- */
 
-/* create, initialize, and return the list structure */
-List *createList()
+/* create, initialize, and return the list structure.
+If you pass a NULL comparator function, the list will
+not be sorted. If you pass a comparator function, you
+will be able to use listInsert which inserts in order */
+List *createList(int (*compareTo) (void *, void *))
 {
 	List *l = malloc(sizeof(List));
 
@@ -23,20 +26,32 @@ List *createList()
 	/* initialize all fields to be 0/null */
 	memset(l, 0, sizeof(List));
 
+	l->compareTo = compareTo;
+
 	return l;
 }
 
-/* just a wrapper since queues are implemented with lists, but
-abstract that from the programmer */
-Queue *createQueue()
+/* allow them to create a priorityQueue by specifying
+a function to determine priority order */
+Queue *createPriorityQueue(int (*compareTo) (void *, void *))
 {
-	return createList();
+	/* createPriorityQueue(NULL) is the same as createQueue() */
+	return createList(compareTo);
 }
 
-/* also abstract away the fact a stack is a list */
+/* just a wrapper since queues are implemented with lists, but
+abstract that from the programmer. pass NULL to createlist
+because we won't be sorting it */
+Queue *createQueue()
+{
+	return createList(NULL);
+}
+
+/* also abstract away the fact a stack is a list. Use NULL
+for createList because it won't be sorted */
 Stack *createStack()
 {
-	return createList();
+	return createList(NULL);
 }
 
 /* create and initialize the element structure */
@@ -111,20 +126,17 @@ Element *listPrepend(List *l, void *data)
 }
 
 /* pass the list, the data to be inserted, and a function to compare
-elements (to determine order) and it will insert it.
-
-compareTo(a, b) is expected to return
-0 on equal
-1 on a>b
--1 on a<b */
-Element *listInsert(List *l, void *data, int (*compareTo)(void *, void *))
+elements (to determine order) and it will insert it. */
+Element *listInsert(List *l, void *data)
 {
-	if(l == NULL || data == NULL)
+	/* if list compareTo is null, we can't insert in any
+	meaningful way */
+	if(l == NULL || data == NULL || l->compareTo == NULL)
 		return NULL;
 	
 	/* if there are no elements, or I should go before the first
 	element, then listPrepend it */
-	if(l->sz == 0 || compareTo(data, l->head->data) < 0)
+	if(l->sz == 0 || l->compareTo(data, l->head->data) < 0)
 		return listPrepend(l, data);
 
 	Element *el = elementCreate();
@@ -139,7 +151,7 @@ Element *listInsert(List *l, void *data, int (*compareTo)(void *, void *))
 	{
 		/* break when iter points to the item right before where we
 		will insert */
-		if(iter->next == NULL || compareTo(data, iter->next->data) < 0)
+		if(iter->next == NULL || l->compareTo(data, iter->next->data) < 0)
 			break;
 
 		iter = iter->next;
@@ -222,7 +234,7 @@ Element *listRemoveIndex(List *l, int idx)
 }
 
 /* removes an element with the same data as *data from the list */
-Element *listRemove(List *l, void *data, int (*compareTo)(void *, void *))
+Element *listRemove(List *l, void *data)
 {
 	if(l == NULL || data == NULL)
 		return NULL;
@@ -231,8 +243,10 @@ Element *listRemove(List *l, void *data, int (*compareTo)(void *, void *))
 
 	while(el != NULL)
 	{
-		/* !compareTo means ==0 which means they are the same */
-		if(!compareTo(data, el->data))
+		/* !compareTo means == 0 which means they are the same. also if
+		they still have the same memory address, then we will accept it
+		as being a match - Useful if it isn't sorted */
+		if(el->data == data || (l->compareTo != NULL && !l->compareTo(data, el->data)))
 			return listRemoveElement(l, el);
 
 		el = el->next;
@@ -248,7 +262,11 @@ Element *enqueue(Queue *q, void *data)
 	if(q == NULL || data == NULL)
 		return NULL;
 
-	return listAppend(q, data);
+	/* if compareTo function is null, treat as regular queue */
+	if(q->compareTo == NULL)
+		return listAppend(q, data);
+	else
+		return listInsert(q, data);
 }
 
 /* dequeue the leading element in a list */
@@ -277,4 +295,12 @@ Element *pop(Stack *s)
 		return NULL;
 
 	return listRemoveElement(s, s->tail);
+}
+
+/* check if a list (or queue or stack) is empty */
+int empty(List *l)
+{
+	if(l->sz == 0)
+		return 1;
+	else return 0;
 }

@@ -17,19 +17,21 @@ struct list_el
 struct list
 {
 	Element *head, *tail;
+	int (*compareTo) (void *, void *);
 	int sz;
 };
 
-List *createList();
+List *createList(int (*compareTo) (void *, void *));
 Queue *createQueue();
+Queue *createPriorityQueue(int (*compareTo) (void *, void *));
 Stack *createStack();
 Element *elementCreate();
 Element *listAppend(List *l, void *data);
 Element *listPrepend(List *l, void *data);
-Element *listInsert(List *l, void *data, int (*compareTo)(void *, void *));
+Element *listInsert(List *l, void *data);
 Element *listRemoveElement(List *l, Element *el);
 Element *listRemoveIndex(List *l, int idx);
-Element *listRemove(List *l, void *data, int (*compareTo)(void *, void *));
+Element *listRemove(List *l, void *data);
 Element *enqueue(Queue *q, void *data);
 Element *dequeue(Queue *q);
 Element *push(Stack *s, void *data);
